@@ -1,0 +1,219 @@
+/*Description:
+
+
+ * Circuit:
+ *   Arduino        Component        
+ *      2  ------->  start button       
+ *      3  ------->  select button
+ *      4  ------->  up button 
+ *      5  ------->  down button
+ *      A4 ------->   sda oled screen
+ *      A5 ------->   scl oled screen
+ 
+ */
+
+//Libraries
+#include <Wire.h>
+#include <SPI.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+
+#define SCREEN_WIDTH 128 // OLED display width, in pixels
+#define SCREEN_HEIGHT 64 // OLED display height, in pixels
+
+// Define pins
+#define startBtnPIN 2   // D2
+#define selectBtnPIN 3  // D3
+#define upBtnPIN 4     // D4
+#define downBtnPIN 5  // D5
+
+#define OLED_RESET     -1 // Reset pin # (or -1 if sharing Arduino reset pin)
+#define SCREEN_ADDRESS 0x3D ///< See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
+
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+
+bool stateStartBtn=0;
+bool stateSelectBtn=0;
+bool stateUpBtn=0;
+bool stateDownBtn=0;
+bool mode=0;
+bool parameter=0;
+int parameter1=0;
+int parameter2=0;
+int AperatureValues = 16;
+int IsoValues = 11;
+
+
+void setup() {
+   // initialize serial port
+  Serial.begin(9600);
+  Wire.begin();
+  
+  // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
+  if(!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
+    Serial.println(F("SSD1306 allocation failed"));
+    for(;;); // Don't proceed, loop forever
+  }
+  
+
+  display.clearDisplay();
+  display.setTextSize(1); // Draw 1X-scale text
+  display.setTextColor(SSD1306_WHITE);
+  
+  // setup button
+  pinMode(startBtnPIN, INPUT_PULLUP);
+  pinMode(selectBtnPIN, INPUT_PULLUP);
+  pinMode(upBtnPIN, INPUT_PULLUP);
+  pinMode(downBtnPIN, INPUT_PULLUP);
+
+  display.setCursor(0, 0);
+  display.println("...READY");
+  display.println("      ");
+  display.println("press Start button");
+  display.println("      ");
+  display.println("select to configure");
+  display.display();
+  delay(1000);
+
+}
+
+void loop() {
+ 
+  readButtons();
+
+}
+
+void readButtons(){
+//=====start button==========
+  if (digitalRead(startBtnPIN)==LOW && stateStartBtn == 0){
+      stateStartBtn=1;
+      Serial.println("start button is pressed");
+
+      if(mode==0){
+        display.clearDisplay();
+        display.setCursor(0, 0);
+        display.println("The process ");
+        display.println("      ");
+        display.println("has started!");
+        display.display();
+      }
+
+   }
+   else if (digitalRead(startBtnPIN)==HIGH && stateStartBtn == 1){
+      stateStartBtn=0;
+   }
+//===select button=================
+   if (digitalRead(selectBtnPIN)==LOW && stateSelectBtn == 0){
+      stateSelectBtn=1;
+     if(mode==0){
+        mode=1;
+        display.clearDisplay();
+        display.setCursor(10, 10);
+        display.print("Parameter 1= ");
+        display.println(parameter1);
+        display.display();      
+        
+     }
+     else if(mode==1 && parameter==0){
+        parameter=1;
+        display.clearDisplay();
+        display.setCursor(10, 10);
+        display.print("Parameter 2= ");
+        display.println(parameter2);
+        display.display();
+        
+      }
+     else if(parameter==1) {
+        mode=0; 
+        parameter=0;
+        screenReady();
+      }
+
+      Serial.println("select button is pressed");
+
+    //  Serial.print("Mode="); Serial.println(mode);
+    //  Serial.print("Parameter="); Serial.println(parameter);
+
+   }
+   else if (digitalRead(selectBtnPIN)==HIGH && stateSelectBtn == 1){
+      stateSelectBtn=0;
+   }
+//=====up button==========
+  if (digitalRead(upBtnPIN)==LOW && stateUpBtn == 0 && mode==1){
+      stateUpBtn=1;
+      Serial.println("up button is pressed");
+
+      display.clearDisplay();
+      display.setCursor(10, 10);
+          
+      if(parameter==0){
+        if(parameter1<15)  parameter1++;
+        
+        display.clearDisplay();
+        display.setCursor(10, 10);
+        display.print("Parameter 1= ");
+        display.println(parameter1);
+        display.display();   
+      }
+      else if(parameter==1){
+        if(parameter2<10) parameter2++;
+        
+        display.clearDisplay();
+        display.setCursor(10, 10);
+        display.print("Parameter 2= ");
+        display.println(parameter2);
+        display.display();   
+      }
+      
+      
+
+   }
+   else if (digitalRead(upBtnPIN)==HIGH && stateUpBtn == 1){
+      stateUpBtn=0;
+   }
+//=====down button==========
+  if (digitalRead(downBtnPIN)==LOW && stateDownBtn == 0 && mode==1){
+      stateDownBtn=1;
+      Serial.println("down button is pressed");
+
+      display.clearDisplay();
+      display.setCursor(10, 10);
+
+      if(parameter==0){
+        if(parameter1>0)  parameter1--;
+        
+        display.clearDisplay();
+        display.setCursor(10, 10);
+        display.print("Parameter 1= ");
+        display.println(parameter1);
+        display.display();   
+      }
+      else if(parameter==1){
+        if(parameter2>0) parameter2--;
+        
+        display.clearDisplay();
+        display.setCursor(10, 10);
+        display.print("Parameter 2= ");
+        display.println(parameter2);
+        display.display();   
+      }
+
+   }
+    else if (digitalRead(downBtnPIN)==HIGH && stateDownBtn == 1){
+      stateDownBtn=0;
+   }
+}
+
+
+void screenReady(){
+  // Display start
+  display.clearDisplay();
+  display.setCursor(0, 0);
+  display.println("...READY");
+  display.println("      ");
+  display.println("press Start button");
+  display.println("      ");
+  display.println("select to configure");
+  display.display();
+  delay(1000);
+}
